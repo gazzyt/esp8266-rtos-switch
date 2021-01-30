@@ -17,10 +17,28 @@
 #include "protocol_examples_common.h"
 #include "nvs.h"
 #include "nvs_flash.h"
+#include "driver/gpio.h"
 
 #include <esp_http_server.h>
 
 static const char *TAG="APP";
+
+#define GPIO_OUTPUT_SWITCH    2
+#define GPIO_OUTPUT_PIN_SEL  (1ULL<<GPIO_OUTPUT_SWITCH)
+
+void toggle_switch()
+{
+    int current = gpio_get_level(GPIO_OUTPUT_SWITCH);
+    if (current == 0)
+    {
+        gpio_set_level(GPIO_OUTPUT_SWITCH, 1);
+    }
+    else
+    {
+        gpio_set_level(GPIO_OUTPUT_SWITCH, 0);
+    }
+}
+
 
 /* An HTTP GET handler */
 esp_err_t hello_get_handler(httpd_req_t *req)
@@ -94,6 +112,9 @@ esp_err_t hello_get_handler(httpd_req_t *req)
     if (httpd_req_get_hdr_value_len(req, "Host") == 0) {
         ESP_LOGI(TAG, "Request headers lost");
     }
+
+    toggle_switch();
+    
     return ESP_OK;
 }
 
@@ -235,6 +256,23 @@ static void connect_handler(void* arg, esp_event_base_t event_base,
 
 void app_main()
 {
+    
+    gpio_config_t io_conf;
+    //disable interrupt
+    io_conf.intr_type = GPIO_INTR_DISABLE;
+    //set as output mode
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    //bit mask of the pins that you want to set,e.g.GPIO15/16
+    io_conf.pin_bit_mask = GPIO_OUTPUT_PIN_SEL;
+    //disable pull-down mode
+    io_conf.pull_down_en = 0;
+    //disable pull-up mode
+    io_conf.pull_up_en = 0;
+    //configure GPIO with the given settings
+    gpio_config(&io_conf);
+
+    gpio_set_level(GPIO_OUTPUT_SWITCH, 0);
+
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
