@@ -21,6 +21,8 @@
 
 #include <esp_http_server.h>
 
+#include "default_html.h"
+
 static const char *TAG="APP";
 
 #define GPIO_OUTPUT_SWITCH    2
@@ -104,8 +106,9 @@ esp_err_t hello_get_handler(httpd_req_t *req)
 
     /* Send response with custom headers and body set as the
      * string passed in user context*/
-    const char* resp_str = (const char*) req->user_ctx;
-    httpd_resp_send(req, resp_str, strlen(resp_str));
+    //const char* resp_str = (const char*) req->user_ctx;
+    //httpd_resp_send(req, resp_str, strlen(resp_str));
+    httpd_resp_send(req, default_html_bytes, default_html_len);
 
     /* After sending the HTTP response the old HTTP request
      * headers are lost. Check if HTTP request headers can be read now. */
@@ -114,7 +117,7 @@ esp_err_t hello_get_handler(httpd_req_t *req)
     }
 
     toggle_switch();
-    
+
     return ESP_OK;
 }
 
