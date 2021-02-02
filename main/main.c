@@ -37,6 +37,16 @@ void toggle_switch()
     }
 }
 
+void switch_on()
+{
+    gpio_set_level(GPIO_OUTPUT_SWITCH, 0);
+}
+
+void switch_off()
+{
+    gpio_set_level(GPIO_OUTPUT_SWITCH, 1);
+}
+
 
 /* An HTTP GET handler */
 esp_err_t hello_get_handler(httpd_req_t *req)
@@ -83,14 +93,13 @@ esp_err_t hello_get_handler(httpd_req_t *req)
             ESP_LOGI(TAG, "Found URL query => %s", buf);
             char param[32];
             /* Get value of expected key from query string */
-            if (httpd_query_key_value(buf, "query1", param, sizeof(param)) == ESP_OK) {
+            if (httpd_query_key_value(buf, "on", param, sizeof(param)) == ESP_OK) {
                 ESP_LOGI(TAG, "Found URL query parameter => query1=%s", param);
+                switch_on();
             }
-            if (httpd_query_key_value(buf, "query3", param, sizeof(param)) == ESP_OK) {
+            if (httpd_query_key_value(buf, "off", param, sizeof(param)) == ESP_OK) {
                 ESP_LOGI(TAG, "Found URL query parameter => query3=%s", param);
-            }
-            if (httpd_query_key_value(buf, "query2", param, sizeof(param)) == ESP_OK) {
-                ESP_LOGI(TAG, "Found URL query parameter => query2=%s", param);
+                switch_off();
             }
         }
         free(buf);
@@ -109,8 +118,6 @@ esp_err_t hello_get_handler(httpd_req_t *req)
     if (httpd_req_get_hdr_value_len(req, "Host") == 0) {
         ESP_LOGI(TAG, "Request headers lost");
     }
-
-    toggle_switch();
 
     return ESP_OK;
 }

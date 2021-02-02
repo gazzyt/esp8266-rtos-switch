@@ -1,8 +1,30 @@
 <html>
     <head>
+        <style>
+            button {
+                display: block;
+                width: 100%;
+                border: none;
+                margin: 4px;
+                padding: 14px 28px;
+                font-size: 64px;
+                cursor: pointer;
+                text-align: center;
+            }
+            .off {
+                background-color: #af4c4c;
+            }
+            .on {
+                background-color: #4CAF50;
+            }
+        </style>
         <title>Switcher</title>
     </head>
     <body>
         <a href="/hello">Switch</a>
+        <form method="GET" action="/hello">
+            <div><button name="on" class="on">On</button></div>
+            <div><button name="off" class="off">Off</button></div>
+        </form>
     </body>
 </html>
