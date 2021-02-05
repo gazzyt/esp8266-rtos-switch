@@ -1,27 +1,24 @@
-# Simple HTTPD Server Example
+# ESP8266 RTOS Switch
 
-The Example consists of HTTPD server demo with demostration of URI handling :
-    1. URI \hello for GET command returns "Hello World!" message
-    2. URI \echo for POST command echoes back the POSTed message
+Building
+--------
 
-* Configure the project using "make menuconfig" and goto :
-    * Example Configuration ->
-        1. WIFI SSID: WIFI network to which your PC is also connected to.
-        2. WIFI Password: WIFI password
+Clone the repository. Start a Docker container containing the SDK and toolchain and mount the code into it using the following command:
 
-* In order to test the HTTPD server persistent sockets demo :
-    1. compile and burn the firmware "make flash"
-    2. run "make monitor" and note down the IP assigned to your ESP module. The default port is 80
-    3. test the example :
-        * run the test script : "python2 scripts/client.py \<IP\> \<port\> \<MSG\>"
-            * the provided test script first does a GET \hello and displays the response
-            * the script does a POST to \echo with the user input \<MSG\> and displays the response
-        * or use curl (asssuming IP is 192.168.43.130):
-            1. "curl 192.168.43.130:80/hello"  - tests the GET "\hello" handler
-            2. "curl -X POST --data-binary @anyfile 192.168.43.130:80/echo > tmpfile"
-                * "anyfile" is the file being sent as request body and "tmpfile" is where the body of the response is saved
-                * since the server echoes back the request body, the two files should be same, as can be confirmed using : "cmp anyfile tmpfile"
-            3. "curl -X PUT -d "0" 192.168.43.130:80/ctrl" - disable /hello and /echo handlers
-            4. "curl -X PUT -d "1" 192.168.43.130:80/ctrl" -  enable /hello and /echo handlers
+```docker run --rm -ti --name esp8266-rtos -v /<PATH TO esp8266-rtos-switch>:/build gazzyt/esp8266-toolchain```
 
-See the README.md file in the upper level 'examples' directory for more information about examples.
+Configure the application. Run ```make menuconfig``` and go to:
+* esp8266 RTOS Switch Configuration ->
+    1. WiFi HOSTNAME: The hostname that the device will appear as on the network
+    1. WiFi SSID: WIFI network to connect to.
+    2. WiFi Password: WIFI password
+
+Build the application by running ```make```.
+
+To flash the firmware we could normally run ```make flash```.
+
+If the docker container is running under WSL2 then the serial port is not available so we have to flash from Windows:
+
+```python -m esptool --chip esp8266 --port COM6 write_flash --flash_size 512KB 0 \\wsl$\Ubuntu-20.04\<PATH TO esp8266-rtos-switch>\build\bootloader\bootloader.bin 0x10000 \\wsl$\Ubuntu-20.04\<PATH TO esp8266-rtos-switch>\build\esp8266-rtos-switch.bin 0x8000 \\wsl$\Ubuntu-20.04\<PATH TO esp8266-rtos-switch>\build\partitions_singleapp.bin```
+
+Reset the device and check the debugging output from the serial monitor. Point a browser at ```http://<hostname>``` and use the on off buttons. The buttons switch the state of the GPIO2 pin which can be used to drive an LED etc.
