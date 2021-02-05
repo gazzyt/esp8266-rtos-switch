@@ -22,3 +22,6 @@ If the docker container is running under WSL2 then the serial port is not availa
 ```python -m esptool --chip esp8266 --port COM6 write_flash --flash_size 512KB 0 \\wsl$\Ubuntu-20.04\<PATH TO esp8266-rtos-switch>\build\bootloader\bootloader.bin 0x10000 \\wsl$\Ubuntu-20.04\<PATH TO esp8266-rtos-switch>\build\esp8266-rtos-switch.bin 0x8000 \\wsl$\Ubuntu-20.04\<PATH TO esp8266-rtos-switch>\build\partitions_singleapp.bin```
 
 Reset the device and check the debugging output from the serial monitor. Point a browser at ```http://<hostname>``` and use the on off buttons. The buttons switch the state of the GPIO2 pin which can be used to drive an LED etc.
+
+An example circuit:
+![](circuit.png)
