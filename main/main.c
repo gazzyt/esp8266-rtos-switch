@@ -8,21 +8,32 @@
 */
 #include <sys/param.h>
 
+
 #include "esp_system.h"
 #include "esp_log.h"
+//#include "esp_timer.h"
 #include "nvs_flash.h"
 #include "driver/gpio.h"
 
 #include <esp_wifi.h>
 #include <esp_event_loop.h>
 #include <esp_http_server.h>
+#include "freertos/task.h"
+#include <freertos/timers.h>
 
 #include "default_html.h"
 
 static const char *TAG="SWITCHER";
+static TimerHandle_t debounceTimer;
 
-#define GPIO_OUTPUT_SWITCH    2
-#define GPIO_OUTPUT_PIN_SEL  (1ULL<<GPIO_OUTPUT_SWITCH)
+// Number of ms for the pushbutton debouncing timer
+#define DEBOUNCE_TIME_MS    20
+
+#define GPIO_OUTPUT_SWITCH  2
+#define GPIO_OUTPUT_PIN_SEL (1ULL<<GPIO_OUTPUT_SWITCH)
+
+#define GPIO_INPUT_BUTTON   0
+#define GPIO_INPUT_PIN_SEL  (1ULL<<GPIO_INPUT_BUTTON)
 
 void toggle_switch()
 {
@@ -188,11 +199,47 @@ static void initialise_wifi(void *arg)
     ESP_ERROR_CHECK(esp_wifi_start());
 }
 
+// This handler is called when the pushbutton is pressed
+static void gpio_isr_handler(void *arg)
+{
+    BaseType_t xHigherPriorityTaskWoken;
+
+    // If the timer is already running then ignore this event
+    if (!xTimerIsTimerActive(debounceTimer))
+    {
+        // Debounde timer is not running so start it
+        xTimerStartFromISR(debounceTimer, &xHigherPriorityTaskWoken);
+
+        if (xHigherPriorityTaskWoken == pdTRUE)
+        {
+            taskYIELD();
+        }
+    }
+}
+
+// This handler is called when the debounce timer expires
+static void debounce_timer_handler(TimerHandle_t xTimer)
+{
+    int current = gpio_get_level(GPIO_INPUT_BUTTON);
+    if (current == 0)
+    {
+        // If the button is still pressed after the debounce time has passed then it's a good press
+        // Toggle the LED state
+        toggle_switch();
+    }
+}
+
 void app_main()
 {
     static httpd_handle_t server = NULL;
 
+    // Create the pushbutton debouncing timer
+    debounceTimer = xTimerCreate("Debounce", DEBOUNCE_TIME_MS / portTICK_RATE_MS, false, NULL, debounce_timer_handler);
+
     gpio_config_t io_conf;
+
+    // Configure output pin
+
     //disable interrupt
     io_conf.intr_type = GPIO_INTR_DISABLE;
     //set as output mode
@@ -206,7 +253,25 @@ void app_main()
     //configure GPIO with the given settings
     gpio_config(&io_conf);
 
+    // Configure pushbutton input pin
+
+    // enable interrupt on falling edge
+    io_conf.intr_type = GPIO_INTR_NEGEDGE;
+    // set as input
+    io_conf.mode = GPIO_MODE_INPUT;
+    //bit mask of the pins that you want to set,e.g.GPIO15/16
+    io_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL;
+    //configure GPIO with the given settings
+    gpio_config(&io_conf);
+
+    // Turn the LED on at startup
     gpio_set_level(GPIO_OUTPUT_SWITCH, 0);
+
+    //install gpio isr service
+    gpio_install_isr_service(0);
+    //hook isr handler for pushbutton gpio pin
+    gpio_isr_handler_add(GPIO_INPUT_BUTTON, gpio_isr_handler, (void *) GPIO_INPUT_BUTTON);
+
 
     ESP_ERROR_CHECK(nvs_flash_init());
     initialise_wifi(&server);
